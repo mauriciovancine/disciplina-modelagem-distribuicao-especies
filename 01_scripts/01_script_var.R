@@ -1,7 +1,7 @@
 # -------------------------------------------------------------------------
-# var - download, adjust extention, adjust resolution, and correlation
+# var - download, adjust extention, adjust resolution
 # mauricio vancine - mauricio.vancine@gmail.com
-# 17-07-2019
+# 06-11-2019
 # -------------------------------------------------------------------------
 
 # preparate r -------------------------------------------------------------
@@ -9,13 +9,10 @@
 rm(list = ls())
 
 # packages
-library(landscapetools)
-library(psych)
 library(raster)
 library(rgdal)
 library(rnaturalearth)
 library(tidyverse)
-library(wesanderson)
 
 # informations
 # https://ropensci.org/
@@ -25,14 +22,14 @@ library(wesanderson)
 # https://www.worldclim.org/
 
 # directory
-path <- "/home/mude/data/gitlab/course-sdm"
+path <- "/home/mude/data/github/disciplina-modelagem-distribuicao-especies/"
 setwd(path)
 dir()
 
 # download ----------------------------------------------------------------
 # directory
-dir.create("03_var")
-setwd("03_var")
+dir.create("02_dados"); dir.create("02_dados/01_var")
+setwd("02_dados/01_var")
 
 # download
 download.file(url = "http://biogeo.ucdavis.edu/data/worldclim/v2.0/tif/base/wc2.0_10m_bio.zip",
@@ -68,9 +65,11 @@ br <- rnaturalearth::ne_countries(country = "Brazil", scale = "small", returncla
 br
 
 # plot
-ggplot() +
-  geom_sf(data = br) +
-  theme_bw()
+tm_shape(br) +
+  tm_polygons() +
+  tm_graticules(lwd = .5) +
+  tm_compass(type = "8star", size = 3, position = c("right", "top")) +
+  tm_scale_bar(breaks = c(0, 500, 1000), text.size = .8)
 
 # import bioclimates
 # list files
@@ -93,135 +92,51 @@ plot(var$bio01)
 # adust extention
 # crop = adjust extention
 # mask = adjust to mask
-var_br <- raster::crop(x = var, y = br) %>% 
-  raster::mask(mask = br)
-var_br
+var_br_crop <- raster::crop(x = var, y = br)
+var_br_crop
 
 # plot
-landscapetools::show_landscape(var_br$bio01)  +
-  geom_polygon(data = var_br$bio01 %>% raster::rasterToPolygons() %>% fortify, 
-               aes(x = long, y = lat, group = group), fill = NA, color = "black", size = .1) +
-  theme(legend.position = "none")
+tm_shape(var_br_crop$bio01) +
+  tm_raster(palette = "-Blues") +
+  tm_shape(br) +
+  tm_borders() +
+  tm_layout(legend.position = c("left", "bottom")) +
+  tm_graticules(lwd = .5) +
+  tm_compass(type = "8star", size = 3, position = c("right", "top")) +
+  tm_scale_bar(breaks = c(0, 500, 1000), text.size = .8)
 
-# adjust resolution -------------------------------------------------------
-# resolution
-raster::res(var_br)[1]
-raster::res(var_br)[1]/(30/3600) # ~km
-
-# aggregation factor 
-res_actual <- raster::res(var_br)[1]
-res_actual
-
-res_adjust <- 0.5
-res_adjust
-
-agg_fac <- res_adjust/res_actual
-agg_fac
-
-# aggregation
-var_br_05 <- raster::aggregate(var_br, fact = agg_fac)
-var_br_05
-
-# new resolution
-raster::res(var_br_05)[1]
+# mask = adjust to mask
+var_br_crop_mask <- raster::mask(x = var_br_crop, mask = br)
+var_br_crop_mask
 
 # plot
-landscapetools::show_landscape(var_br$bio01) +
-  geom_polygon(data = var_br$bio01 %>% raster::rasterToPolygons() %>% fortify, 
-               aes(x = long, y = lat, group = group), fill = NA, color = "black", size = .1) +
-  theme(legend.position = "none")
-landscapetools::show_landscape(var_br_05$bio01) +
-  geom_polygon(data = var_br_05$bio01 %>% raster::rasterToPolygons() %>% fortify, 
-               aes(x = long, y = lat, group = group), fill = NA, color = "black", size = .1) +
-  theme(legend.position = "none")
+tm_shape(var_br_crop_mask$bio01) +
+  tm_raster(palette = "-Blues") +
+  tm_shape(br) +
+  tm_borders() +
+  tm_layout(legend.position = c("left", "bottom")) +
+  tm_graticules(lwd = .5) +
+  tm_compass(type = "8star", size = 3, position = c("right", "top")) +
+  tm_scale_bar(breaks = c(0, 500, 1000), text.size = .8)
+
+# directory
+dir.create("02_dados/01_var")
+setwd("02_dados/01_var")
 
 # export
-dir.create("00_var")
-setwd("00_var")
-raster::writeRaster(x = var_br_05, 
-                    filename = paste0("wc20_brasil_res05g_", names(var_br)), 
+# tif
+raster::writeRaster(x = var_br_crop_mask, 
+                    filename = paste0("wc20_brasil_", names(var_br_crop_mask)), 
                     bylayer = TRUE, 
                     options = c("COMPRESS=DEFLATE"), 
                     format = "GTiff", 
                     overwrite = TRUE)
 
-# exclude
-setwd("..")
-dir(pattern = ".tif") %>% 
-  unlink()
-
-# correlation -------------------------------------------------------------
-# directory
-dir.create("01_correlation") 
-setwd("01_correlation")
-getwd()
-
-# extract values
-var_da <- var_br_05 %>% 
-  raster::values() %>% 
-  tibble::as_tibble() %>% 
-  tidyr::drop_na()
-var_da
-
-# verify
-head(var_da)
-dim(var_da)
-
-# correlation
-cor_table <- corrr::correlate(var_da, method = "spearman") 
-cor_table
-
-# preparate table
-cor_table_summary <- cor_table %>% 
-  corrr::shave() %>%
-  corrr::fashion()
-cor_table_summary
-
-# export
-readr::write_csv(cor_table_summary, "correlacao.csv")
-
-
-# select variables
-# correlated variables
-fi_06 <- cor_table %>% 
-  corrr::as_matrix() %>% 
-  caret::findCorrelation(cutoff = .6, names = TRUE, verbose = TRUE)
-fi_06
-
-# select
-var_da_cor06 <- var_da %>% 
-  dplyr::select(-fi_06)
-var_da_cor06
-
-# verify
-var_da_cor06 %>% 
-  corrr::correlate(method = "spearman") %>% 
-  corrr::as_matrix() %>% 
-  caret::findCorrelation(cutoff = .6, names = TRUE, verbose = TRUE)
-
-# graphic
-tiff("correlacao_plot.tiff", wi = 30, he = 25, un = "cm", res = 300, comp = "lzw")
-pairs.panels(x = var_da_cor06 %>% dplyr::sample_n(1e3), 
-             method = "spearman",
-             pch = 20, 
-             ellipses = FALSE, 
-             density = FALSE, 
-             stars = TRUE, 
-             hist.col = "gray",
-             digits = 2,
-             rug = FALSE,
-             breaks = 10,
-             ci = TRUE)
-dev.off()
-
-# copy var not correlated -------------------------------------------------
-# directory
-setwd(path)
-setwd("03_var/00_var")
-
-# copy vars to 03_var
-dir() %>% 
-    grep(pattern = paste0(fi_06, collapse = "|"), invert = TRUE, value = TRUE) %>% 
-    file.copy(., "/home/mude/data/gitlab/course-sdm/03_var")
+# asc
+raster::writeRaster(x = var_br_crop_mask, 
+                    filename = paste0("wc20_brasil_", names(var_br_crop_mask)), 
+                    bylayer = TRUE, 
+                    format = "ascii", 
+                    overwrite = TRUE)
 
 # end ---------------------------------------------------------------------

@@ -1,7 +1,7 @@
 # -------------------------------------------------------------------------
 # occ - download and taxonomic, data, and spatial filter
 # mauricio vancine - mauricio.vancine@gmail.com
-# 19-07-2019
+# 06-11-2019
 # -------------------------------------------------------------------------
 
 # preparate r -------------------------------------------------------------
@@ -10,11 +10,9 @@ rm(list = ls())
 
 # packages
 library(CoordinateCleaner)
-library(landscapetools)
 library(lubridate)
 library(raster)
 library(rgdal)
-library(rnaturalearth)
 library(sf)
 library(spocc)
 library(taxize)
@@ -36,12 +34,12 @@ library(tidyverse)
 # https://github.com/r-spatial/sf
 
 # directory
-path <- "/home/mude/data/gitlab/course-sdm"
+path <- "/home/mude/data/github/disciplina-modelagem-distribuicao-especies"
 setwd(path)
 dir()
 
 # download occurrences ----------------------------------------------------
-# species
+# species list
 sp <- c("Haddadus binotatus")
 sp
 
@@ -84,15 +82,37 @@ occ_data <- occ %>%
   dplyr::select(name, longitude, latitude, year, base)
 occ_data
 
+# vector
+occ_vector <- occ_data %>% 
+  dplyr::mutate(lon = longitude, lat = latitude) %>% 
+  sf::st_as_sf(coords = c("lon", "lat"), crs = 4326)
+occ_vector
+
 # limit brazil
 br <- rnaturalearth::ne_countries(country = "Brazil", scale = "small", returnclass = "sf")
 br
 
 # map
-ggplot() +
-  geom_sf(data = br) +
-  geom_point(data = occ_data, aes(x = longitude, y = latitude)) +
-  theme_bw()
+map_total <- tm_shape(br) +
+  tm_polygons() +
+  tm_shape(occ_vector) +
+  tm_dots(shape = 21, size = .2, col = "steelblue", alpha = .7) +
+  tm_graticules(lwd = .5) +
+  tm_compass(type = "8star", size = 3, position = c("right", "top")) +
+  tm_scale_bar(breaks = c(0, 500, 1000), text.size = .8)  +
+  tm_add_legend(title = sp, type = "symbol", labels = c("Total"),
+                col = c("steelblue"), shape = 21, size = 1) +
+  tm_layout(legend.bg.color = TRUE, legend.frame = TRUE)
+map_total
+
+# directory
+dir.create("02_dados/00_occ")
+setwd("02_dados/00_occ")
+
+# export
+readr::write_csv(occ_data, paste0("00_occ_data_total_", sp, "_", Sys.Date(), ".csv"))
+sf::write_sf(occ_vector, paste0("00_occ_data_total_", sp, "_", Sys.Date(), ".shp"))
+tmap::tmap_save(map_total, paste0("00_occ_data_total_", sp, "_", Sys.Date(), ".png"))
 
 # taxonomic filter --------------------------------------------------------
 # gnr names
@@ -128,12 +148,31 @@ occ_data_tax
 occ_data$name %>% table %>% tibble::as_tibble()
 occ_data_tax$name %>% table %>% tibble::as_tibble()
 
+# vector
+occ_vector_tax <- occ_data_tax %>% 
+  dplyr::mutate(lon = longitude, lat = latitude) %>% 
+  sf::st_as_sf(coords = c("lon", "lat"), crs = 4326)
+occ_vector_tax
+
 # map
-ggplot() +
-  geom_sf(data = br) +
-  geom_point(data = occ_data, aes(x = longitude, y = latitude)) +
-  geom_point(data = occ_data_tax, aes(x = longitude, y = latitude), color = "red") +
-  theme_bw()
+map_filter_tax <- tm_shape(br) +
+  tm_polygons() +
+  tm_shape(occ_vector) +
+  tm_dots(shape = 21, size = .2, col = "red", alpha = .7) +
+  tm_shape(occ_vector_tax) +
+  tm_dots(shape = 21, size = .2, col = "steelblue", alpha = .7) +
+  tm_graticules(lwd = .5) +
+  tm_compass(type = "8star", size = 3, position = c("right", "top")) +
+  tm_scale_bar(breaks = c(0, 500, 1000), text.size = .8) +
+  tm_add_legend(title = sp, type = "symbol", labels = c("Total", "Filtro - Taxonomia"), 
+                col = c("steelblue", "red"), shape = 21, size = 1) +
+  tm_layout(legend.bg.color = TRUE, legend.frame = TRUE)
+map_filter_tax
+
+# export
+readr::write_csv(occ_data_tax, paste0("01_occ_data_filter_tax_", sp, "_", Sys.Date(), ".csv"))
+sf::write_sf(occ_vector_tax, paste0("01_occ_data_filter_tax_", sp, "_", Sys.Date(), ".shp"))
+tmap::tmap_save(map_filter_tax, paste0("01_occ_data_filter_tax_", sp, "_", Sys.Date(), ".png"))
 
 # date filter -------------------------------------------------------------
 # verify
@@ -150,16 +189,38 @@ occ_data_tax_date
 occ_data_tax$year %>% table(useNA = "always")
 occ_data_tax_date$year %>% table(useNA = "always")
 
-ggplot() + 
-  geom_histogram(data = occ_data_tax_date, aes(year), color = "darkred", fill = "red", bins = 10, alpha = .5) +
+hist_temporal <- ggplot() + 
+  geom_histogram(data = occ_data, aes(year), color = "darkblue", fill = "steelblue", bins = 50) +
+  geom_histogram(data = occ_data_tax_date, aes(year), color = "darkred", fill = "red", bins = 50, alpha = .7) +
   theme_bw()
+hist_temporal
+
+# vector
+occ_vector_tax_date <- occ_data_tax_date %>% 
+  dplyr::mutate(lon = longitude, lat = latitude) %>% 
+  sf::st_as_sf(coords = c("lon", "lat"), crs = 4326)
+occ_vector_tax_date
 
 # map
-ggplot() +
-  geom_sf(data = br) +
-  geom_point(data = occ_data, aes(x = longitude, y = latitude)) +
-  geom_point(data = occ_data_tax_date, aes(x = longitude, y = latitude), color = "red") +
-  theme_bw()
+map_filter_tax_date <- tm_shape(br) +
+  tm_polygons() +
+  tm_shape(occ_vector) +
+  tm_dots(shape = 21, size = .2, col = "red", alpha = .7) +
+  tm_shape(occ_vector_tax_date) +
+  tm_dots(shape = 21, size = .2, col = "steelblue", alpha = .7) +
+  tm_graticules(lwd = .5) +
+  tm_compass(type = "8star", size = 3, position = c("right", "top")) +
+  tm_scale_bar(breaks = c(0, 500, 1000), text.size = .8) +
+  tm_add_legend(title = "Legenda", type = "symbol", labels = c("Total", "Filtro - Data"), 
+                col = c("steelblue", "red"), shape = 21, size = 1) +
+  tm_layout(legend.bg.color = TRUE, legend.frame = TRUE)
+map_filter_tax_date
+
+# export
+readr::write_csv(occ_data_tax_date, paste0("02_occ_data_filter_tax_date_", sp, "_", Sys.Date(), ".csv"))
+ggplot2::ggsave(paste0("02_occ_data_hist_year_", sp, "_", Sys.Date(), ".png"), hist_temporal)
+sf::write_sf(occ_vector_tax_date, paste0("02_occ_data_filter_tax_date_", sp, "_", Sys.Date(), ".shp"))
+tmap::tmap_save(map_filter_tax_date, paste0("02_occ_data_filter_tax_date_", sp, "_", Sys.Date(), ".png"))
 
 # spatial filter ----------------------------------------------------------
 # remove na
@@ -179,7 +240,7 @@ flags_spatial <- CoordinateCleaner::clean_coordinates(
             "equal", # equal coordinates
             "gbif", # radius around GBIF headquarters
             "institutions", # radius around biodiversity institutions
-            "outliers", # records far away from all other records of this species
+            # "outliers", # records far away from all other records of this species
             "seas", # in the sea
             "urban", # within urban area
             "validity", # outside reference coordinate system
@@ -202,26 +263,53 @@ occ_data_tax_date_spa
 occ_data_na$species %>% table
 occ_data_tax_date_spa$species %>% table
 
+# vector
+occ_vector_tax_date_spa <- occ_data_tax_date_spa %>% 
+  dplyr::mutate(lon = longitude, lat = latitude) %>% 
+  sf::st_as_sf(coords = c("lon", "lat"), crs = 4326)
+occ_vector_tax_date_spa
+
 # map
-ggplot() +
-  geom_sf(data = br) +
-  geom_point(data = occ_data_na, aes(x = longitude, y = latitude)) +
-  geom_point(data = occ_data_tax_date_spa, aes(x = longitude, y = latitude), color = "red") +
-  theme_bw()
+map_filter_tax_date_spa <- tm_shape(br) +
+  tm_polygons() +
+  tm_shape(occ_vector) +
+  tm_dots(shape = 21, size = .2, col = "red") +
+  tm_shape(occ_vector_tax_date_spa) +
+  tm_dots(shape = 21, size = .2, col = "steelblue") + 
+  tm_graticules(lwd = .5) +
+  tm_compass(type = "8star", size = 3, position = c("right", "top")) +
+  tm_scale_bar(breaks = c(0, 500, 1000), text.size = .8) +
+  tm_add_legend(title = "Legenda", type = "symbol", labels = c("Total", "Filtro - Espacial"), 
+                col = c("steelblue", "red"), shape = 21, size = 1) +
+  tm_layout(legend.bg.color = TRUE, legend.frame = TRUE)
+map_filter_tax_date_spa
+
+# export
+readr::write_csv(occ_data_tax_date_spa, paste0("03_occ_data_filter_tax_data_espacial_", sp, "_", Sys.Date(), ".csv"))
+sf::write_sf(occ_vector_tax_date_spa, paste0("03_occ_data_filter_tax_data_espacial_", sp, "_", Sys.Date(), ".shp"))
+tmap::tmap_save(map_filter_tax_date_spa, paste0("03_occ_data_filter_tax_data_espacial_", sp, "_", Sys.Date(), ".png"))
 
 # oppc --------------------------------------------------------------------
 # directory
-setwd(path); setwd("03_var")
+setwd(path)
+setwd("02_dados/01_var")
+dir()
 
 # import raster id
-var_id <- raster::raster("wc20_brasil_res05g_bio03.tif")
+var_id <- raster::raster("wc20_brasil_bio01.tif")
 var_id
 
 var_id[!is.na(var_id)] <- raster::cellFromXY(var_id, raster::rasterToPoints(var_id)[, 1:2])
-landscapetools::show_landscape(var_id) +
-  geom_polygon(data = var_id %>% raster::rasterToPolygons() %>% fortify, 
-               aes(x = long, y = lat, group = group), fill = NA, color = "black", size = .1) +
-  theme(legend.position = "none")
+
+# map
+tm_shape(var_id) +
+  tm_raster(palette = "Greens") +
+  tm_shape(br) +
+  tm_borders() +
+  tm_layout(legend.position = c("left", "bottom")) +
+  tm_graticules(lwd = .5) +
+  tm_compass(type = "8star", size = 3, position = c("right", "top")) +
+  tm_scale_bar(breaks = c(0, 500, 1000), text.size = .8)
 
 # oppc
 occ_data_tax_date_spa_oppc <- occ_data_tax_date_spa %>% 
@@ -236,29 +324,43 @@ occ_data_tax_date_spa_oppc
 table(occ_data_tax_date_spa$species)
 table(occ_data_tax_date_spa_oppc$species)
 
+# vector
+occ_vector_tax_date_spa_oppc <- occ_data_tax_date_spa_oppc %>% 
+  dplyr::mutate(lon = longitude, lat = latitude) %>% 
+  sf::st_as_sf(coords = c("lon", "lat"), crs = 4326)
+occ_vector_tax_date_spa_oppc
+
 # map
-ggplot() +
-  geom_sf(data = br) +
-  geom_polygon(data = var_id %>% raster::rasterToPolygons() %>% fortify, aes(x = long, y = lat, group = group), 
-               fill = NA, color = "black", size = .2) +
-  geom_point(data = occ_data_tax_date_spa, aes(x = longitude, y = latitude)) +
-  geom_point(data = occ_data_tax_date_spa_oppc, aes(x = longitude, y = latitude), color = "red") +
-  theme_bw()
+map_filter_tax_date_spa_oppc <- tm_shape(br) +
+  tm_polygons() +
+  tm_shape(occ_vector) +
+  tm_dots(shape = 21, size = .2, col = "steelblue") +
+  tm_shape(occ_vector_tax_date_spa_oppc) +
+  tm_dots(shape = 21, size = .2, col = "red") + 
+  tm_graticules(lwd = .5) +
+  tm_compass(type = "8star", size = 3, position = c("right", "top")) +
+  tm_scale_bar(breaks = c(0, 500, 1000), text.size = .8) +
+  tm_add_legend(title = "Legenda", type = "symbol", labels = c("Total", "Filtro - OPPC"), 
+                col = c("red", "steelblue"), shape = 21, size = 1) +
+  tm_layout(legend.bg.color = TRUE, legend.frame = TRUE)
+map_filter_tax_date_spa_oppc
+
+# directory
+setwd("..")
+setwd("00_occ")
+
+# export
+readr::write_csv(occ_data_tax_date_spa_oppc, paste0("04_occ_data_filter_tax_data_espacial_oppc_", sp, "_", Sys.Date(), ".csv"))
+readr::write_csv(occ_data_tax_date_spa_oppc %>% dplyr::select(species, longitude, latitude), 
+                 paste0("04_occ_data_filter_tax_data_espacial_oppc_maxent_", sp, "_", Sys.Date(), ".csv"))
+sf::write_sf(occ_vector_tax_date_spa_oppc, paste0("04_occ_data_filter_tax_data_espacial_oppc_", sp, "_", Sys.Date(), ".shp"))
+tmap::tmap_save(map_filter_tax_date_spa_oppc, paste0("04_occ_data_filter_tax_data_espacial_oppc_", sp, "_", Sys.Date(), ".png"))
 
 # verify filters ----------------------------------------------------------
+occ_data %>% nrow()
 occ_data_tax$species %>% table
 occ_data_tax_date$species %>% table
 occ_data_tax_date_spa$species %>% table
 occ_data_tax_date_spa_oppc$species %>% table
 
-# export ------------------------------------------------------------------
-# directory
-setwd(path)
-dir.create("02_occ")
-setwd("02_occ")
-
-# export
-readr::write_csv(occ_data, paste0("occ_spocc_bruto_", lubridate::today(), ".csv"))
-readr::write_csv(occ_data_tax_date_spa_oppc, paste0("occ_spocc_filtros_taxonomico_data_espatial_oppc.csv"))
-
-# end ---------------------------------------------------------------------s
+# end ---------------------------------------------------------------------
