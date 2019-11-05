@@ -22,14 +22,14 @@ library(tidyverse)
 # https://www.worldclim.org/
 
 # directory
-path <- "/home/mude/data/github/disciplina-modelagem-distribuicao-especies/"
+path <- "/home/mude/data/disciplina-modelagem-distribuicao-especies"
 setwd(path)
 dir()
 
 # download ----------------------------------------------------------------
 # directory
-dir.create("02_dados"); dir.create("02_dados/01_var")
-setwd("02_dados/01_var")
+dir.create("02_dados"); dir.create("02_dados/01_var"); dir.create("02_dados/01_var/00_raw")
+setwd("02_dados/01_var/00_raw")
 
 # download
 download.file(url = "http://biogeo.ucdavis.edu/data/worldclim/v2.0/tif/base/wc2.0_10m_bio.zip",
@@ -119,11 +119,12 @@ tm_shape(var_br_crop_mask$bio01) +
   tm_compass(type = "8star", size = 3, position = c("right", "top")) +
   tm_scale_bar(breaks = c(0, 500, 1000), text.size = .8)
 
-# directory
-dir.create("02_dados/01_var")
-setwd("02_dados/01_var")
-
 # export
+# directory
+setwd("..")
+dir.create("01_brazil_tif")
+setwd("01_brazil_tif")
+
 # tif
 raster::writeRaster(x = var_br_crop_mask, 
                     filename = paste0("wc20_brasil_", names(var_br_crop_mask)), 
@@ -131,6 +132,11 @@ raster::writeRaster(x = var_br_crop_mask,
                     options = c("COMPRESS=DEFLATE"), 
                     format = "GTiff", 
                     overwrite = TRUE)
+
+# directory
+setwd("..")
+dir.create("02_brazil_asc")
+setwd("02_brazil_asc")
 
 # asc
 raster::writeRaster(x = var_br_crop_mask, 

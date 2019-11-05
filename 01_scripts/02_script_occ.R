@@ -34,7 +34,7 @@ library(tidyverse)
 # https://github.com/r-spatial/sf
 
 # directory
-path <- "/home/mude/data/github/disciplina-modelagem-distribuicao-especies"
+path <- "/home/mude/data/disciplina-modelagem-distribuicao-especies"
 setwd(path)
 dir()
 
@@ -100,7 +100,8 @@ map_total <- tm_shape(br) +
   tm_graticules(lwd = .5) +
   tm_compass(type = "8star", size = 3, position = c("right", "top")) +
   tm_scale_bar(breaks = c(0, 500, 1000), text.size = .8)  +
-  tm_add_legend(title = sp, type = "symbol", labels = c("Total"),
+  tm_add_legend(title = sp, type = "symbol", 
+                labels = c(paste0("Total (", nrow(occ_data), ")")),
                 col = c("steelblue"), shape = 21, size = 1) +
   tm_layout(legend.bg.color = TRUE, legend.frame = TRUE)
 map_total
@@ -158,13 +159,15 @@ occ_vector_tax
 map_filter_tax <- tm_shape(br) +
   tm_polygons() +
   tm_shape(occ_vector) +
-  tm_dots(shape = 21, size = .2, col = "red", alpha = .7) +
-  tm_shape(occ_vector_tax) +
   tm_dots(shape = 21, size = .2, col = "steelblue", alpha = .7) +
+  tm_shape(occ_vector_tax) +
+  tm_dots(shape = 21, size = .2, col = "red", alpha = .7) +
   tm_graticules(lwd = .5) +
   tm_compass(type = "8star", size = 3, position = c("right", "top")) +
   tm_scale_bar(breaks = c(0, 500, 1000), text.size = .8) +
-  tm_add_legend(title = sp, type = "symbol", labels = c("Total", "Filtro - Taxonomia"), 
+  tm_add_legend(title = sp, type = "symbol", 
+                labels = c(paste0("Total (", nrow(occ_data), ")"), 
+                           paste0("Filtro - Taxonomia (", nrow(occ_data_tax), ")")),
                 col = c("steelblue", "red"), shape = 21, size = 1) +
   tm_layout(legend.bg.color = TRUE, legend.frame = TRUE)
 map_filter_tax
@@ -205,13 +208,15 @@ occ_vector_tax_date
 map_filter_tax_date <- tm_shape(br) +
   tm_polygons() +
   tm_shape(occ_vector) +
-  tm_dots(shape = 21, size = .2, col = "red", alpha = .7) +
-  tm_shape(occ_vector_tax_date) +
   tm_dots(shape = 21, size = .2, col = "steelblue", alpha = .7) +
+  tm_shape(occ_vector_tax_date) +
+  tm_dots(shape = 21, size = .2, col = "red", alpha = .7) +
   tm_graticules(lwd = .5) +
   tm_compass(type = "8star", size = 3, position = c("right", "top")) +
   tm_scale_bar(breaks = c(0, 500, 1000), text.size = .8) +
-  tm_add_legend(title = "Legenda", type = "symbol", labels = c("Total", "Filtro - Data"), 
+  tm_add_legend(title = "Legenda", type = "symbol", 
+                labels = c(paste0("Total (", nrow(occ_data), ")"), 
+                           paste0("Filtro - Data (", nrow(occ_data_tax_date), ")")),
                 col = c("steelblue", "red"), shape = 21, size = 1) +
   tm_layout(legend.bg.color = TRUE, legend.frame = TRUE)
 map_filter_tax_date
@@ -273,13 +278,15 @@ occ_vector_tax_date_spa
 map_filter_tax_date_spa <- tm_shape(br) +
   tm_polygons() +
   tm_shape(occ_vector) +
-  tm_dots(shape = 21, size = .2, col = "red") +
+  tm_dots(shape = 21, size = .2, col = "steelblue") +
   tm_shape(occ_vector_tax_date_spa) +
-  tm_dots(shape = 21, size = .2, col = "steelblue") + 
+  tm_dots(shape = 21, size = .2, col = "red") + 
   tm_graticules(lwd = .5) +
   tm_compass(type = "8star", size = 3, position = c("right", "top")) +
   tm_scale_bar(breaks = c(0, 500, 1000), text.size = .8) +
-  tm_add_legend(title = "Legenda", type = "symbol", labels = c("Total", "Filtro - Espacial"), 
+  tm_add_legend(title = "Legenda", type = "symbol", 
+                labels = c(paste0("Total (", nrow(occ_data), ")"), 
+                           paste0("Filtro - Espacial (", nrow(occ_data_tax_date_spa), ")")),
                 col = c("steelblue", "red"), shape = 21, size = 1) +
   tm_layout(legend.bg.color = TRUE, legend.frame = TRUE)
 map_filter_tax_date_spa
@@ -292,7 +299,7 @@ tmap::tmap_save(map_filter_tax_date_spa, paste0("03_occ_data_filter_tax_data_esp
 # oppc --------------------------------------------------------------------
 # directory
 setwd(path)
-setwd("02_dados/01_var")
+setwd("02_dados/01_var/01_brazil_tif")
 dir()
 
 # import raster id
@@ -340,13 +347,15 @@ map_filter_tax_date_spa_oppc <- tm_shape(br) +
   tm_graticules(lwd = .5) +
   tm_compass(type = "8star", size = 3, position = c("right", "top")) +
   tm_scale_bar(breaks = c(0, 500, 1000), text.size = .8) +
-  tm_add_legend(title = "Legenda", type = "symbol", labels = c("Total", "Filtro - OPPC"), 
-                col = c("red", "steelblue"), shape = 21, size = 1) +
+  tm_add_legend(title = "Legenda", type = "symbol", 
+                labels = c(paste0("Total (", nrow(occ_data), ")"), 
+                           paste0("Filtro - OPPC (", nrow(occ_data_tax_date_spa_oppc), ")")), 
+                col = c("steelblue", "red"), shape = 21, size = 1) +
   tm_layout(legend.bg.color = TRUE, legend.frame = TRUE)
 map_filter_tax_date_spa_oppc
 
 # directory
-setwd("..")
+setwd(".."); setwd("..")
 setwd("00_occ")
 
 # export
