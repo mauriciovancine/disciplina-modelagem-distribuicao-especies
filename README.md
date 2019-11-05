@@ -75,7 +75,7 @@ sudo apt install -y qgis qgis-plugin-grass
 
 **Instalar os pacotes no R** <br>
 Com o R e o RStudio instalados, baixe esse [script](https://github.com/mauriciovancine/disciplina-modelagem-distribuicao-especies/blob/master/01_scripts/00_script_install_packages.R) (scripts são roteiros que possuem comandos, como um rascunho). <br>
-Abra o script baixado (**script_install_packages.R**) no software RStudio e rode cada linha de comando para instalar os pacotes. <br>
+Abra o script baixado (**00_script_install_packages.R**) no software RStudio e rode cada linha de comando para instalar os pacotes. <br>
 Para rodar as linhas, basta colocar o cursor na linha de código a ser executada e precionar: `Crtl + Enter`, como mostra o gif abaixo:
 
 ![Alt Text](https://appsilon.com/wp-content/uploads/2019/03/blog_code_execution_optimized.gif)
